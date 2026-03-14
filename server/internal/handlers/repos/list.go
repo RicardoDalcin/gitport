@@ -29,5 +29,9 @@ func ListReposHandler(c *gin.Context, db *db.Client) {
 		return
 	}
 
-	c.JSON(200, repos)
+	if len(repos) == 0 {
+		repos = []*models.Repository{}
+	}
+
+	c.JSON(200, ListReposResponse{Repositories: repos})
 }

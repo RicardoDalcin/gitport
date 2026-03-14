@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
 )
 
 type NewRepoBody struct {
@@ -24,7 +26,13 @@ func NewRepoHandler(c *gin.Context, db *db.Client) {
 		return
 	}
 
-	basePath := filepath.Join(os.Getenv("GIT_REPO_BASE_DIR"))
+	executionPath, pathErr := os.Executable()
+	if pathErr != nil {
+		c.JSON(500, gin.H{"error": pathErr.Error()})
+		return
+	}
+
+	basePath := filepath.Join(filepath.Dir(executionPath), os.Getenv("GIT_REPO_BASE_DIR"))
 	path := filepath.Join(basePath, "repos", body.Name)
 
 	err := db.CreateRepository(&models.Repository{
@@ -36,6 +44,12 @@ func NewRepoHandler(c *gin.Context, db *db.Client) {
 		DefaultBranch: "main",
 	})
 
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err = git.PlainInit(path, false, git.WithDefaultBranch(plumbing.Main))
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
